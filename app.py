@@ -1,73 +1,88 @@
 import streamlit as st
 import requests
+import json
+
+# --------------------------------------------------
+# CONFIG
+# --------------------------------------------------
+AGENT_URL = "https://divi220903-agentic-vehicle-advisor.hf.space/predict"
 
 st.set_page_config(
-    page_title="Agentic Vehicle AI Platform",
-    layout="wide"
+    page_title="Agentic Vehicle AI",
+    page_icon="🚗",
+    layout="centered"
 )
 
-AGENT_URL = "https://agentic-vehicle-advisor.hf.space"
-
-
-st.title("🚗 Agentic Vehicle Intelligence Platform")
-st.caption("Autonomous diagnostics • Predictive maintenance • Secure AI agents")
-
-st.divider()
-
-# SECTION 1 — VEHICLE HEALTH
-st.subheader("🟢 Vehicle Digital Twin")
-
-vehicle_data = requests.get(
-    "https://s-divyadarsshini.github.io/agentic-vehicle-ai-db/vehicle_state.json"
-).json()
-
-for comp in vehicle_data["components"]:
-    st.metric(
-        label=comp["name"],
-        value=f"{comp['health']}%",
-        delta=f"Risk {comp['failure_score']}"
-    )
+# --------------------------------------------------
+# UI HEADER
+# --------------------------------------------------
+st.title("🚗 Agentic Vehicle Advisor")
+st.caption("AI-powered vehicle health, RCA insights & autonomous service booking")
 
 st.divider()
 
-# SECTION 2 — SERVICE AGENT
-st.subheader("🧠 AI Service Advisor")
+# --------------------------------------------------
+# INPUT DATA (Demo Vehicle)
+# --------------------------------------------------
+vehicle_data = {
+    "vehicle": "Demo Car",
+    "components": [
+        {"name": "Brakes", "health": 78, "failure_score": 0.22},
+        {"name": "Engine", "health": 92, "failure_score": 0.08},
+        {"name": "Battery", "health": 65, "failure_score": 0.35}
+    ]
+}
 
-issue = st.text_input("Describe the issue (optional)")
-confirm = st.radio("Confirm service booking", ["No", "Yes"])
+st.subheader("🔍 Vehicle Health Snapshot")
+st.json(vehicle_data)
 
-if st.button("Run AI Agent"):
-    response = requests.post(
-    AGENT_URL + "/api/predict",
-    json={
-        "data": [issue, confirm]
-    }
-)
+# --------------------------------------------------
+# ACTION BUTTON
+# --------------------------------------------------
+if st.button("🧠 Run Vehicle Agent"):
+    with st.spinner("Agent analyzing vehicle data..."):
+        try:
+            response = requests.post(
+                AGENT_URL,
+                headers={"Content-Type": "application/json"},
+                data=json.dumps(vehicle_data),
+                timeout=30
+            )
 
-result = response.json()
-st.success(result["data"][0])
+            # Show raw response for debugging (SAFE)
+            st.subheader("📡 Raw Agent Response")
+            st.code(response.text)
 
+            # Try parsing JSON safely
+            try:
+                result = response.json()
+            except Exception:
+                st.error("❌ Agent did not return valid JSON")
+                st.stop()
 
-st.divider()
+            # --------------------------------------------------
+            # DISPLAY RESULTS
+            # --------------------------------------------------
+            st.success("✅ Agent executed successfully")
 
-# SECTION 3 — RCA INSIGHTS
-st.subheader("📊 RCA Insights")
+            if "rca" in result:
+                st.subheader("📊 RCA Insights")
+                st.write(result["rca"])
 
-if st.button("Generate RCA Insights"):
-    response = requests.post(
-    AGENT_URL + "/api/predict",
-    json={
-        "data": ["", "No"]
-    }
-)
+            if "security_logs" in result:
+                st.subheader("🔐 Security Logs")
+                st.write(result["security_logs"])
 
-result = response.json()
-st.info(result["data"][0])
+            if "service_booking" in result:
+                st.subheader("📅 Service Booking")
+                st.success(
+                    f"""
+                    **Date & Time:** {result['service_booking']['date_time']}  
+                    **Service Center:** {result['service_booking']['center']}  
+                    **Booking ID:** {result['service_booking']['booking_id']}
+                    """
+                )
 
-
-st.divider()
-
-# SECTION 4 — SECURITY STATUS
-st.subheader("🔐 System Security")
-
-st.success("All agent actions verified • Secure ✔")
+        except requests.exceptions.RequestException as e:
+            st.error("🚨 Failed to connect to Agent Space")
+            st.code(str(e))
