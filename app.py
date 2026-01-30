@@ -6,7 +6,8 @@ st.set_page_config(
     layout="wide"
 )
 
-AGENT_URL = "https://huggingface.co/spaces/divi220903/agentic-vehicle-advisor"
+AGENT_URL = "https://agentic-vehicle-advisor.hf.space"
+
 
 st.title("🚗 Agentic Vehicle Intelligence Platform")
 st.caption("Autonomous diagnostics • Predictive maintenance • Secure AI agents")
@@ -37,11 +38,15 @@ confirm = st.radio("Confirm service booking", ["No", "Yes"])
 
 if st.button("Run AI Agent"):
     response = requests.post(
-        AGENT_URL + "/run",
-        json={"data": [issue, confirm]}
-    ).json()
+    AGENT_URL + "/api/predict",
+    json={
+        "data": [issue, confirm]
+    }
+)
 
-    st.success(response["data"][0])
+result = response.json()
+st.success(result["data"][0])
+
 
 st.divider()
 
@@ -50,11 +55,15 @@ st.subheader("📊 RCA Insights")
 
 if st.button("Generate RCA Insights"):
     response = requests.post(
-        AGENT_URL + "/run",
-        json={"data": ["", "No"]}
-    ).json()
+    AGENT_URL + "/api/predict",
+    json={
+        "data": ["", "No"]
+    }
+)
 
-    st.info(response["data"][0])
+result = response.json()
+st.info(result["data"][0])
+
 
 st.divider()
 
