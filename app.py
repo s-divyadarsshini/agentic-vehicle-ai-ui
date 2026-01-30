@@ -1,88 +1,41 @@
-import streamlit as st
-import requests
-import json
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List
+from datetime import datetime
 
-# --------------------------------------------------
-# CONFIG
-# --------------------------------------------------
-AGENT_URL = "https://divi220903-agentic-vehicle-advisor.hf.space/predict"
+app = FastAPI()
 
-st.set_page_config(
-    page_title="Agentic Vehicle AI",
-    page_icon="🚗",
-    layout="centered"
-)
+# ---------------------------
+# DATA MODELS
+# ---------------------------
+class Component(BaseModel):
+    name: str
+    health: int
+    failure_score: float
 
-# --------------------------------------------------
-# UI HEADER
-# --------------------------------------------------
-st.title("🚗 Agentic Vehicle Advisor")
-st.caption("AI-powered vehicle health, RCA insights & autonomous service booking")
+class VehicleInput(BaseModel):
+    vehicle: str
+    components: List[Component]
 
-st.divider()
+# ---------------------------
+# API ENDPOINT
+# ---------------------------
+@app.post("/predict")
+def run_agent(data: VehicleInput):
 
-# --------------------------------------------------
-# INPUT DATA (Demo Vehicle)
-# --------------------------------------------------
-vehicle_data = {
-    "vehicle": "Demo Car",
-    "components": [
-        {"name": "Brakes", "health": 78, "failure_score": 0.22},
-        {"name": "Engine", "health": 92, "failure_score": 0.08},
-        {"name": "Battery", "health": 65, "failure_score": 0.35}
-    ]
-}
+    rca = []
+    for c in data.components:
+        if c.failure_score > 0.3:
+            rca.append(f"{c.name} has high failure probability")
 
-st.subheader("🔍 Vehicle Health Snapshot")
-st.json(vehicle_data)
+    service_booking = {
+        "date_time": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        "center": "Nearest Available Center",
+        "booking_id": "BK161543"
+    }
 
-# --------------------------------------------------
-# ACTION BUTTON
-# --------------------------------------------------
-if st.button("🧠 Run Vehicle Agent"):
-    with st.spinner("Agent analyzing vehicle data..."):
-        try:
-            response = requests.post(
-                AGENT_URL,
-                headers={"Content-Type": "application/json"},
-                data=json.dumps(vehicle_data),
-                timeout=30
-            )
-
-            # Show raw response for debugging (SAFE)
-            st.subheader("📡 Raw Agent Response")
-            st.code(response.text)
-
-            # Try parsing JSON safely
-            try:
-                result = response.json()
-            except Exception:
-                st.error("❌ Agent did not return valid JSON")
-                st.stop()
-
-            # --------------------------------------------------
-            # DISPLAY RESULTS
-            # --------------------------------------------------
-            st.success("✅ Agent executed successfully")
-
-            if "rca" in result:
-                st.subheader("📊 RCA Insights")
-                st.write(result["rca"])
-
-            if "security_logs" in result:
-                st.subheader("🔐 Security Logs")
-                st.write(result["security_logs"])
-
-            if "service_booking" in result:
-                st.subheader("📅 Service Booking")
-                st.success(
-                    f"""
-                    **Date & Time:** {result['service_booking']['date_time']}  
-                    **Service Center:** {result['service_booking']['center']}  
-                    **Booking ID:** {result['service_booking']['booking_id']}
-                    """
-                )
-
-        except requests.exceptions.RequestException as e:
-            st.error("🚨 Failed to connect to Agent Space")
-            st.code(str(e))
+    return {
+        "rca": rca,
+        "security_logs": "No anomalies detected",
+        "service_booking": service_booking
+    }
