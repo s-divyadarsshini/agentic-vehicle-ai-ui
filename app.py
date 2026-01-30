@@ -6,7 +6,7 @@ st.set_page_config(
     layout="wide"
 )
 
-AGENT_URL = "https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME"
+AGENT_URL = "https://huggingface.co/spaces/divi220903/agentic-vehicle-advisor"
 
 st.title("🚗 Agentic Vehicle Intelligence Platform")
 st.caption("Autonomous diagnostics • Predictive maintenance • Secure AI agents")
